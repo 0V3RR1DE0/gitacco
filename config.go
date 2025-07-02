@@ -8,8 +8,9 @@ import (
 )
 
 type Account struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	GitHubUsername string `json:"github_username,omitempty"` // Optional GitHub username
 }
 
 type Config struct {
@@ -17,12 +18,15 @@ type Config struct {
 }
 
 func getConfigPath() string {
-	homeDir, err := os.UserHomeDir()
+	// Get the directory where the executable is located
+	execPath, err := os.Executable()
 	if err != nil {
-		fmt.Printf("Error getting home directory: %v\n", err)
+		fmt.Printf("Error getting executable path: %v\n", err)
 		os.Exit(1)
 	}
-	return filepath.Join(homeDir, ".gitacco.json")
+	
+	execDir := filepath.Dir(execPath)
+	return filepath.Join(execDir, "gitacco-config.json")
 }
 
 func loadConfig() *Config {
@@ -71,4 +75,8 @@ func saveConfig(config *Config) {
 		fmt.Printf("Error writing config file: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func showConfigLocation() {
+	fmt.Printf("📁 Config file location: %s\n", getConfigPath())
 }

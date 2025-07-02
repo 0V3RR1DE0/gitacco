@@ -40,6 +40,27 @@ func main() {
 		removeAccount(username)
 	case "current":
 		showCurrentAccount()
+	case "config":
+		showConfigLocation()
+	case "github":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: gitacco github <set|unset> [username]")
+			return
+		}
+		subcommand := os.Args[2]
+		switch subcommand {
+		case "set":
+			if len(os.Args) < 4 {
+				fmt.Println("Usage: gitacco github set <username>")
+				return
+			}
+			username := os.Args[3]
+			setGitHubCredential(username)
+		case "unset":
+			unsetGitHubCredential()
+		default:
+			fmt.Println("Usage: gitacco github <set|unset> [username]")
+		}
 	default:
 		printUsage()
 	}
@@ -53,4 +74,7 @@ func printUsage() {
 	fmt.Println("  gitacco list                         - List all accounts")
 	fmt.Println("  gitacco remove <username>            - Remove an account")
 	fmt.Println("  gitacco current                      - Show current account")
+	fmt.Println("  gitacco config                       - Show config file location")
+	fmt.Println("  gitacco github set <username>        - Set GitHub credential for account")
+	fmt.Println("  gitacco github unset                 - Remove GitHub credential")
 }
