@@ -9,31 +9,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
     strategy:
       matrix:
         include:
           - goos: windows
             goarch: amd64
-            suffix: .exe
-            name: gitacco-windows-amd64.exe
+            name: gitacco-win64
+            ext: .exe
           - goos: windows
             goarch: 386
-            suffix: .exe
-            name: gitacco-windows-386.exe
+            name: gitacco-win32
+            ext: .exe
           - goos: linux
             goarch: amd64
-            suffix: ""
-            name: gitacco-linux-amd64
+            name: gitacco-linux64
+            ext: ""
           - goos: linux
             goarch: 386
-            suffix: ""
-            name: gitacco-linux-386
+            name: gitacco-linux32
+            ext: ""
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.21'
 
@@ -41,71 +43,39 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
       run: |
-        go build -ldflags="-s -w" -o ${{ matrix.name }} .
+        go build -ldflags="-s -w" -o ${{ matrix.name }}${{ matrix.ext }} .
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
-        path: ${{ matrix.name }}
+        path: ${{ matrix.name }}${{ matrix.ext }}
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
     if: startsWith(github.ref, 'refs/tags/')
     
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
+      with:
+        merge-multiple: true
 
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
+        files: |
+          gitacco-win64.exe
+          gitacco-win32.exe
+          gitacco-linux64
+          gitacco-linux32
+        generate_release_notes: true
         draft: false
         prerelease: false
-
-    - name: Upload Windows AMD64
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./gitacco-windows-amd64.exe/gitacco-windows-amd64.exe
-        asset_name: gitacco-windows-amd64.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows 386
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./gitacco-windows-386.exe/gitacco-windows-386.exe
-        asset_name: gitacco-windows-386.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux AMD64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./gitacco-linux-amd64/gitacco-linux-amd64
-        asset_name: gitacco-linux-amd64
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux 386
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./gitacco-linux-386/gitacco-linux-386
-        asset_name: gitacco-linux-386
-        asset_content_type: application/octet-stream
